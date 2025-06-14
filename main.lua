@@ -1,67 +1,117 @@
 -- Create GUI
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "MonsterListGui"
+ScreenGui.Name = "MonsterDropdownGui"
 ScreenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
 
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 300, 0, 400)
-mainFrame.Position = UDim2.new(0.5, -150, 0.5, -200)
-mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+mainFrame.Size = UDim2.new(0, 300, 0, 200)
+mainFrame.Position = UDim2.new(0.5, -150, 0.5, -100)
+mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 mainFrame.BorderSizePixel = 0
 mainFrame.Parent = ScreenGui
 
--- Add scrollable frame
-local scroll = Instance.new("ScrollingFrame")
-scroll.Size = UDim2.new(1, 0, 1, 0)
-scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-scroll.ScrollBarThickness = 6
-scroll.BackgroundTransparency = 1
-scroll.Parent = mainFrame
+-- ComboBox1: Levels
+local levelDropdown = Instance.new("TextButton")
+levelDropdown.Size = UDim2.new(1, -20, 0, 40)
+levelDropdown.Position = UDim2.new(0, 10, 0, 10)
+levelDropdown.Text = "Select Level"
+levelDropdown.TextColor3 = Color3.new(1,1,1)
+levelDropdown.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+levelDropdown.Parent = mainFrame
 
-local layout = Instance.new("UIListLayout")
-layout.Padding = UDim.new(0, 5)
-layout.Parent = scroll
+-- ComboBox2: Monsters
+local monsterDropdown = Instance.new("TextButton")
+monsterDropdown.Size = UDim2.new(1, -20, 0, 40)
+monsterDropdown.Position = UDim2.new(0, 10, 0, 60)
+monsterDropdown.Text = "Select Monster"
+monsterDropdown.TextColor3 = Color3.new(1,1,1)
+monsterDropdown.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+monsterDropdown.Parent = mainFrame
 
--- Helper to add section title
-local function addSection(title)
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, 0, 0, 25)
-    label.BackgroundTransparency = 1
-    label.Text = "-- " .. title .. " --"
-    label.TextColor3 = Color3.fromRGB(255, 200, 0)
-    label.Font = Enum.Font.SourceSansBold
-    label.TextSize = 20
-    label.Parent = scroll
+-- Dropdown container (for Level)
+local levelList = Instance.new("Frame")
+levelList.Size = UDim2.new(1, -20, 0, 100)
+levelList.Position = UDim2.new(0, 10, 0, 50)
+levelList.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+levelList.Visible = false
+levelList.Parent = mainFrame
+
+local levelLayout = Instance.new("UIListLayout", levelList)
+levelLayout.Padding = UDim.new(0, 2)
+
+-- Dropdown container (for Monster)
+local monsterList = Instance.new("Frame")
+monsterList.Size = UDim2.new(1, -20, 0, 100)
+monsterList.Position = UDim2.new(0, 10, 0, 100)
+monsterList.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+monsterList.Visible = false
+monsterList.Parent = mainFrame
+
+local monsterLayout = Instance.new("UIListLayout", monsterList)
+monsterLayout.Padding = UDim.new(0, 2)
+
+-- Fill Level Dropdown
+local levelsFolder = workspace:FindFirstChild("Levels")
+local levelNames = {}
+
+if levelsFolder then
+    for _, level in ipairs(levelsFolder:GetChildren()) do
+        table.insert(levelNames, level.Name)
+    end
 end
 
--- Helper to add monster name
-local function addMonster(name)
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, 0, 0, 25)
-    label.BackgroundTransparency = 1
-    label.Text = name
-    label.TextColor3 = Color3.fromRGB(255, 255, 255)
-    label.Font = Enum.Font.SourceSans
-    label.TextSize = 18
-    label.Parent = scroll
-end
+for _, levelName in ipairs(levelNames) do
+    local option = Instance.new("TextButton")
+    option.Text = levelName
+    option.Size = UDim2.new(1, 0, 0, 25)
+    option.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    option.TextColor3 = Color3.new(1,1,1)
+    option.Parent = levelList
 
--- Scan Levels and list monsters
-local levels = workspace:FindFirstChild("Levels")
-if levels then
-    for _, level in ipairs(levels:GetChildren()) do
-        local monsters = level:FindFirstChild("Monsters")
-        if monsters and #monsters:GetChildren() > 0 then
-            addSection(level.Name)
-            for _, monster in ipairs(monsters:GetChildren()) do
-                addMonster(monster.Name)
+    option.MouseButton1Click:Connect(function()
+        levelDropdown.Text = levelName
+        levelList.Visible = false
+        monsterDropdown.Text = "Select Monster"
+        
+        -- Clear previous monster list
+        for _, child in ipairs(monsterList:GetChildren()) do
+            if child:IsA("TextButton") then
+                child:Destroy()
             end
         end
-    end
-else
-    warn("Levels folder not found.")
+
+        -- Populate monsters for selected level
+        local levelFolder = levelsFolder:FindFirstChild(levelName)
+        if levelFolder then
+            local monstersFolder = levelFolder:FindFirstChild("Monsters")
+            if monstersFolder then
+                for _, monster in ipairs(monstersFolder:GetChildren()) do
+                    local monsterOption = Instance.new("TextButton")
+                    monsterOption.Text = monster.Name
+                    monsterOption.Size = UDim2.new(1, 0, 0, 25)
+                    monsterOption.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+                    monsterOption.TextColor3 = Color3.new(1,1,1)
+                    monsterOption.Parent = monsterList
+
+                    monsterOption.MouseButton1Click:Connect(function()
+                        monsterDropdown.Text = monster.Name
+                        monsterList.Visible = false
+                    end)
+                end
+            end
+        end
+    end)
 end
 
--- Resize scroll based on content
-task.wait(0.1)
-scroll.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y)
+-- Toggle visibility
+levelDropdown.MouseButton1Click:Connect(function()
+    levelList.Visible = not levelList.Visible
+    monsterList.Visible = false
+end)
+
+monsterDropdown.MouseButton1Click:Connect(function()
+    if levelDropdown.Text ~= "Select Level" then
+        monsterList.Visible = not monsterList.Visible
+        levelList.Visible = false
+    end
+end)
