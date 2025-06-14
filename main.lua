@@ -1,78 +1,146 @@
 -- Settings
-local DROPDOWN_WIDTH = 300
-local DROPDOWN_HEIGHT = 35
+local WIDTH = 250
+local HEIGHT = 40
 
--- Create GUI container
-local gui = Instance.new("ScreenGui", game.Players.LocalPlayer:WaitForChild("PlayerGui"))
-gui.Name = "ModernDropdown"
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+gui.Name = "DropdownUI"
 
--- Main dropdown button
-local dropdownBtn = Instance.new("TextButton")
-dropdownBtn.Size = UDim2.new(0, DROPDOWN_WIDTH, 0, DROPDOWN_HEIGHT)
-dropdownBtn.Position = UDim2.new(0.5, -DROPDOWN_WIDTH/2, 0.4, 0)
-dropdownBtn.BackgroundColor3 = Color3.fromRGB(245, 245, 245)
-dropdownBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
-dropdownBtn.Font = Enum.Font.SourceSans
-dropdownBtn.TextSize = 18
-dropdownBtn.Text = "Select Level ▼"
-dropdownBtn.AutoButtonColor = false
-dropdownBtn.Parent = gui
+-- Main container
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, WIDTH + 20, 0, 180)
+frame.Position = UDim2.new(0.5, -WIDTH/2, 0.4, 0)
+frame.BackgroundColor3 = Color3.fromRGB(240, 240, 240)
+frame.Active = true
+frame.Draggable = true
+frame.Parent = gui
 
--- Add border stroke
-local stroke = Instance.new("UIStroke", dropdownBtn)
+-- UI Stroke
+local stroke = Instance.new("UIStroke", frame)
 stroke.Color = Color3.fromRGB(200, 200, 200)
-stroke.Thickness = 1.5
+stroke.Thickness = 1
 
--- Dropdown list container
-local dropdownList = Instance.new("Frame")
-dropdownList.Size = UDim2.new(0, DROPDOWN_WIDTH, 0, 0)
-dropdownList.Position = UDim2.new(0.5, -DROPDOWN_WIDTH/2, 0.4, DROPDOWN_HEIGHT + 4)
-dropdownList.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-dropdownList.ClipsDescendants = true
-dropdownList.Visible = false
-dropdownList.Parent = gui
+-- Function to create a dropdown
+local function createDropdown(labelText, yPosition)
+	local dropdownBtn = Instance.new("TextButton")
+	dropdownBtn.Size = UDim2.new(0, WIDTH, 0, HEIGHT)
+	dropdownBtn.Position = UDim2.new(0, 10, 0, yPosition)
+	dropdownBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	dropdownBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
+	dropdownBtn.Font = Enum.Font.SourceSans
+	dropdownBtn.TextSize = 18
+	dropdownBtn.Text = labelText .. " ▼"
+	dropdownBtn.BorderSizePixel = 0
+	dropdownBtn.AutoButtonColor = false
+	dropdownBtn.Parent = frame
 
-local listLayout = Instance.new("UIListLayout", dropdownList)
-listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	local dropdownList = Instance.new("Frame")
+	dropdownList.Size = UDim2.new(0, WIDTH, 0, 0)
+	dropdownList.Position = UDim2.new(0, 10, 0, yPosition + HEIGHT + 2)
+	dropdownList.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	dropdownList.Visible = false
+	dropdownList.ClipsDescendants = true
+	dropdownList.Parent = frame
 
--- Hover effect function
-local function applyHover(button)
-	button.MouseEnter:Connect(function()
-		button.BackgroundColor3 = Color3.fromRGB(230, 230, 230)
+	local listLayout = Instance.new("UIListLayout", dropdownList)
+	listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	listLayout.Padding = UDim.new(0, 2)
+
+	return dropdownBtn, dropdownList
+end
+
+-- Hover effect for options
+local function applyHover(btn)
+	btn.MouseEnter:Connect(function()
+		btn.BackgroundColor3 = Color3.fromRGB(230, 230, 230)
 	end)
-	button.MouseLeave:Connect(function()
-		button.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	btn.MouseLeave:Connect(function()
+		btn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 	end)
 end
 
--- Example levels (replace with real)
-local levelNames = { "Level1", "Level2", "Level3", "Level4", "Level5", "Level6", "Activity1" }
+-- Create ComboBox1 (Levels)
+local levelDropdownBtn, levelDropdownList = createDropdown("Select Level", 10)
 
+-- Create ComboBox2 (Monsters)
+local monsterDropdownBtn, monsterDropdownList = createDropdown("Select Monster", 70)
+
+-- Get levels from Workspace.Levels
+local levelFolder = workspace:FindFirstChild("Levels")
+local levelNames = {}
+if levelFolder then
+	for _, level in ipairs(levelFolder:GetChildren()) do
+		table.insert(levelNames, level.Name)
+	end
+end
+
+-- Populate ComboBox1
 for _, levelName in ipairs(levelNames) do
-	local item = Instance.new("TextButton")
-	item.Size = UDim2.new(1, 0, 0, DROPDOWN_HEIGHT)
-	item.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-	item.TextColor3 = Color3.fromRGB(0, 0, 0)
-	item.Font = Enum.Font.SourceSans
-	item.TextSize = 18
-	item.Text = levelName
-	item.BorderSizePixel = 0
-	item.Parent = dropdownList
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(1, 0, 0, HEIGHT)
+	btn.Text = levelName
+	btn.Font = Enum.Font.SourceSans
+	btn.TextSize = 18
+	btn.TextColor3 = Color3.new(0, 0, 0)
+	btn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	btn.BorderSizePixel = 0
+	btn.Parent = levelDropdownList
 
-	applyHover(item)
+	applyHover(btn)
 
-	item.MouseButton1Click:Connect(function()
-		dropdownBtn.Text = levelName .. " ▼"
-		dropdownList.Visible = false
+	btn.MouseButton1Click:Connect(function()
+		levelDropdownBtn.Text = levelName .. " ▼"
+		levelDropdownList.Visible = false
+		monsterDropdownList.Visible = false
+		monsterDropdownBtn.Text = "Select Monster ▼"
+
+		-- Clear old monster list
+		for _, child in ipairs(monsterDropdownList:GetChildren()) do
+			if child:IsA("TextButton") then child:Destroy() end
+		end
+
+		-- Load monsters
+		local level = levelFolder:FindFirstChild(levelName)
+		local monsters = level and level:FindFirstChild("Monsters")
+		if monsters then
+			for _, monster in ipairs(monsters:GetChildren()) do
+				local mbtn = Instance.new("TextButton")
+				mbtn.Size = UDim2.new(1, 0, 0, HEIGHT)
+				mbtn.Text = monster.Name
+				mbtn.Font = Enum.Font.SourceSans
+				mbtn.TextSize = 18
+				mbtn.TextColor3 = Color3.new(0, 0, 0)
+				mbtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+				mbtn.BorderSizePixel = 0
+				mbtn.Parent = monsterDropdownList
+
+				applyHover(mbtn)
+
+				mbtn.MouseButton1Click:Connect(function()
+					monsterDropdownBtn.Text = monster.Name .. " ▼"
+					monsterDropdownList.Visible = false
+				end)
+			end
+		end
 	end)
 end
 
--- Animate dropdown open/close
-local isOpen = false
-dropdownBtn.MouseButton1Click:Connect(function()
-	isOpen = not isOpen
-	dropdownList.Visible = isOpen
-	dropdownList.Size = isOpen
-		and UDim2.new(0, DROPDOWN_WIDTH, 0, #levelNames * DROPDOWN_HEIGHT)
-		or UDim2.new(0, DROPDOWN_WIDTH, 0, 0)
+-- Toggle dropdowns
+levelDropdownBtn.MouseButton1Click:Connect(function()
+	levelDropdownList.Visible = not levelDropdownList.Visible
+	monsterDropdownList.Visible = false
+	levelDropdownList.Size = levelDropdownList.Visible
+		and UDim2.new(0, WIDTH, 0, #levelNames * HEIGHT)
+		or UDim2.new(0, WIDTH, 0, 0)
+end)
+
+monsterDropdownBtn.MouseButton1Click:Connect(function()
+	if monsterDropdownList:GetChildren()[1] then
+		monsterDropdownList.Visible = not monsterDropdownList.Visible
+		levelDropdownList.Visible = false
+		monsterDropdownList.Size = monsterDropdownList.Visible
+			and UDim2.new(0, WIDTH, 0, #monsterDropdownList:GetChildren() * HEIGHT)
+			or UDim2.new(0, WIDTH, 0, 0)
+	end
 end)
