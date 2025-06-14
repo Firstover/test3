@@ -1,86 +1,128 @@
--- Load Tokyo UI Library
-local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/drillygzzly/Roblox-UI-Libs/main/1%20Tokyo%20Lib%20(FIXED)/Tokyo%20Lib%20Source.lua"))({
-    cheatname = "Monster GUI",
-    gamename = "Explorer"
-})
+-- SETTINGS
+local WIDTH = 250
+local HEIGHT = 35
 
-library:init()
-
--- Setup
-local Decimals = 4
-local Clock = os.clock()
-
--- Create Window
-local Window = library.NewWindow({
-    title = "Monster Viewer | Tokyo UI",
-    size = UDim2.new(0, 510, 0.6, 6)
-})
-
--- Tabs and Sections
-local Tab = Window:AddTab(" Monsters ")
-local Section = Tab:AddSection(" Select Area ", 1)
-
--- Forward declaration for monster dropdown
-local monsterListRef = nil
-
--- Load Level list from workspace.Levels
+local player = game.Players.LocalPlayer
 local LevelsFolder = workspace:FindFirstChild("Levels")
-local levelList = {}
 
-if LevelsFolder then
-    for _, lvl in ipairs(LevelsFolder:GetChildren()) do
-        table.insert(levelList, lvl.Name)
-    end
+-- GUI Container
+local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+gui.Name = "MonsterUI"
+
+-- Main Frame
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, WIDTH + 20, 0, 200)
+frame.Position = UDim2.new(0.5, -WIDTH/2, 0.4, 0)
+frame.BackgroundColor3 = Color3.fromRGB(240, 240, 240)
+frame.Active = true
+frame.Draggable = true
+frame.Parent = gui
+
+local stroke = Instance.new("UIStroke", frame)
+stroke.Color = Color3.fromRGB(180, 180, 180)
+stroke.Thickness = 1
+
+-- Create Dropdown Function
+local function createDropdown(yPos, placeholderText)
+	local button = Instance.new("TextButton")
+	button.Size = UDim2.new(0, WIDTH, 0, HEIGHT)
+	button.Position = UDim2.new(0, 10, 0, yPos)
+	button.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	button.TextColor3 = Color3.fromRGB(0, 0, 0)
+	button.Font = Enum.Font.SourceSans
+	button.TextSize = 18
+	button.Text = placeholderText .. " ▼"
+	button.Parent = frame
+
+	local list = Instance.new("Frame")
+	list.Position = UDim2.new(0, 10, 0, yPos + HEIGHT + 2)
+	list.Size = UDim2.new(0, WIDTH, 0, 0)
+	list.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	list.Visible = false
+	list.ClipsDescendants = true
+	list.Parent = frame
+
+	local layout = Instance.new("UIListLayout", list)
+	layout.SortOrder = Enum.SortOrder.LayoutOrder
+	layout.Padding = UDim.new(0, 2)
+
+	return button, list
 end
 
--- Track selected level
-local selectedLevel = nil
+-- Hover Styling
+local function hoverEffect(btn)
+	btn.MouseEnter:Connect(function()
+		btn.BackgroundColor3 = Color3.fromRGB(230, 230, 230)
+	end)
+	btn.MouseLeave:Connect(function()
+		btn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	end)
+end
 
--- ComboBox 1: Level Selector
-Section:AddList({
-    enabled = true,
-    text = "Select Level",
-    tooltip = "Choose a Level or Activity",
-    selected = "",
-    values = levelList,
-    multi = false,
-    open = false,
-    max = 6,
-    callback = function(levelName)
-        selectedLevel = levelName
+-- Create Dropdown 1 (Level) & 2 (Monster)
+local levelBtn, levelList = createDropdown(10, "Select Level")
+local monsterBtn, monsterList = createDropdown(70, "Select Monster")
 
-        -- Auto-update monster list
-        local monsters = {}
-        local folder = LevelsFolder:FindFirstChild(levelName)
-        if folder then
-            local monsterFolder = folder:FindFirstChild("Monsters")
-            if monsterFolder then
-                for _, m in ipairs(monsterFolder:GetChildren()) do
-                    table.insert(monsters, m.Name)
-                end
-            end
-        end
+-- Handle Dropdown Toggle
+levelBtn.MouseButton1Click:Connect(function()
+	levelList.Visible = not levelList.Visible
+	monsterList.Visible = false
+	levelList.Size = levelList.Visible and UDim2.new(0, WIDTH, 0, #levelList:GetChildren() * HEIGHT) or UDim2.new(0, WIDTH, 0, 0)
+end)
 
-        -- Update ComboBox2 with monster names
-        monsterListRef:SetValues(monsters)
-    end
-})
+monsterBtn.MouseButton1Click:Connect(function()
+	if monsterList:GetChildren()[1] then
+		monsterList.Visible = not monsterList.Visible
+		levelList.Visible = false
+		monsterList.Size = monsterList.Visible and UDim2.new(0, WIDTH, 0, #monsterList:GetChildren() * HEIGHT) or UDim2.new(0, WIDTH, 0, 0)
+	end
+end)
 
--- ComboBox 2: Monster Selector
-monsterListRef = Section:AddList({
-    enabled = true,
-    text = "Select Monster",
-    tooltip = "Choose a monster after selecting level",
-    selected = "",
-    values = {}, -- starts empty
-    multi = false,
-    open = false,
-    max = 6,
-    callback = function(monster)
-        print("Selected Monster:", monster)
-    end
-})
+-- Build Level List
+if LevelsFolder then
+	for _, levelFolder in ipairs(LevelsFolder:GetChildren()) do
+		local option = Instance.new("TextButton")
+		option.Size = UDim2.new(1, 0, 0, HEIGHT)
+		option.Text = levelFolder.Name
+		option.Font = Enum.Font.SourceSans
+		option.TextSize = 18
+		option.TextColor3 = Color3.new(0, 0, 0)
+		option.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+		option.BorderSizePixel = 0
+		option.Parent = levelList
+		hoverEffect(option)
 
--- Show load time
-local Time = (string.format("%."..tostring(Decimals).."f", os.clock() - Clock))
-library:SendNotification("Monster UI Loaded in " .. Time .. "s", 6)
+		option.MouseButton1Click:Connect(function()
+			levelBtn.Text = levelFolder.Name .. " ▼"
+			levelList.Visible = false
+			monsterBtn.Text = "Select Monster ▼"
+
+			-- Clear monster list
+			for _, c in ipairs(monsterList:GetChildren()) do
+				if c:IsA("TextButton") then c:Destroy() end
+			end
+
+			-- Build Monster List for Selected Level
+			local monsters = levelFolder:FindFirstChild("Monsters")
+			if monsters then
+				for _, m in ipairs(monsters:GetChildren()) do
+					local mOption = Instance.new("TextButton")
+					mOption.Size = UDim2.new(1, 0, 0, HEIGHT)
+					mOption.Text = m.Name
+					mOption.Font = Enum.Font.SourceSans
+					mOption.TextSize = 18
+					mOption.TextColor3 = Color3.new(0, 0, 0)
+					mOption.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+					mOption.BorderSizePixel = 0
+					mOption.Parent = monsterList
+					hoverEffect(mOption)
+
+					mOption.MouseButton1Click:Connect(function()
+						monsterBtn.Text = m.Name .. " ▼"
+						monsterList.Visible = false
+					end)
+				end
+			end
+		end)
+	end
+end
